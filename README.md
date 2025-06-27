@@ -1,8 +1,13 @@
 # teamUp
 
 ## Install dependencies
-`poetry install`
+`pip install requirements.txt`
 
 ## To run backend
 Naigate to folder backend and run:\
-`make run-backend`
+
+`uvicorn app.main:app --reload`
+
+## To run frontend
+In root directory run:
+`streamlit run app.py`
