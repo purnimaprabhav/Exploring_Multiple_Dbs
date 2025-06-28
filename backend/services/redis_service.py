@@ -4,7 +4,10 @@ from typing import Optional, Dict, Any, Set
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# Load .env file with explicit path
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+print(f"Loaded REDIS_HOST: {os.getenv('REDIS_HOST')}, REDIS_PORT: {os.getenv('REDIS_PORT')}, REDIS_DB: {os.getenv('REDIS_DB')}")
+
 
 class RedisService:
     def __init__(self):
