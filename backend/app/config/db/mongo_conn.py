@@ -12,12 +12,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    client = AsyncIOMotorClient(
-        MONGO_URI
-    #     tls=True,
-    #     tlsCAFile=certifi.where(),
-    #     server_api=ServerApi("1")
-        )
+    client = AsyncIOMotorClient(MONGO_URI)
     db = client.get_database("nosql_project")
     app.state.mongodb = db
     yield

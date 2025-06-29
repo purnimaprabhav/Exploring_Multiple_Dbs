@@ -1,15 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from typing import List, Optional
+from pydantic import BaseModel
 from backend.app.services.mongodb_service import get_all_users
 from backend.app.config.db.mongo_conn import get_mongo_db
 from backend.app.models.user import UserCreate, UserLogin, AvailabilityUpdate
-from pydantic import BaseModel
+from backend.app.services.redis_service import get_cached_data, set_cached_data, delete_cached_data
 
 router = APIRouter(prefix="/mongo")
 
 @router.get("/getallusers")
 async def read_all_users(db = Depends(get_mongo_db)):
+    cache_key = "mongo:all_users"
+    cached_users = await get_cached_data(cache_key)
+
+    if cached_users:
+        return cached_users
+
     users = await get_all_users(db)
+    await set_cached_data(cache_key, users, 300)
     return users
 
 
@@ -18,6 +26,9 @@ async def signup(user: UserCreate, db = Depends(get_mongo_db)):
     user = user.dict()
     try:
         result = await db["users"].insert_one(user)
+        await delete_cached_data("mongo:all_users")
+        await clear_cache_pattern("mongo:filter_users:*")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return {
@@ -94,6 +105,12 @@ async def list_users(
     limit: int = Query(100, ge=1, le=1000),
     db = Depends(get_mongo_db),
 ):
+
+    cache_key = f"mongo:filter_users:{role}:{availability}:{skill}:{experience_min}:{interest}:{skip}:{limit}"
+    cached_results = await get_cached_data(cache_key)
+    if cached_results:
+        return cached_results
+
     filt: dict = {}
     if role is not None:
         filt["role"] = role
@@ -111,4 +128,6 @@ async def list_users(
     docs = await cursor.to_list(length=limit)
     for doc in docs:
         doc["_id"] = str(doc["_id"])
+
+    await set_cached_data(cache_key, docs, 120)
     return docs
